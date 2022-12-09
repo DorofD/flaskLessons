@@ -21,11 +21,11 @@
     </ul>
     <div class="clear"></div>
     <div class="content">
-      {% endblock mainmenu -%} {% if title %}
-      <title>Про Flask - {{title}}</title>
+      {% endblock mainmenu -%} {% block h1 -%} {% if title %}
+      <h1>{{title}}</h1>
       {% else %}
-      <title>Про Flask</title>
-      {% endif %} {% endblock %}
+      <h1>Про Flask</h1>
+      {% endif %}{% endblock %} {% endblock %}
     </div>
   </body>
 </html>
