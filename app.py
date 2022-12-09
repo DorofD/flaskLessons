@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, request, flash
+from flask import Flask, render_template, url_for, request, flash, session, redirect
 
 app = Flask(__name__)
 
@@ -30,6 +30,20 @@ def contact():
         else:
             flash('Ошибка отправки', category='error')
     return render_template('contact.html', title = 'Обратная связь', menu = menu)
+
+
+@app.route('/login', methods=['POST', 'GET'])
+def login():
+    if 'userLogged' in session:
+        return redirect(url_for('profile', username=session['userLogged']))
+    elif request.method == 'POST' and request.form['username'] == 'selfedu' and request.form['psw'] == '123':
+        session['userLogged'] = request.form['username']
+        return redirect(url_for('profile', username=session['userLogged']))
+    return render_template('login.html', title='Авторизация', menu=menu)
+
+@app.errorhandler(404)
+def pageNotFound(error):
+    return render_template('page404.html', title='Страница не найдена', menu=menu), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
