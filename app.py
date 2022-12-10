@@ -1,17 +1,53 @@
-from flask import Flask, render_template, url_for, request, flash, session, redirect, abort
+from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g
+
+import sqlite3, os
+
+# конфигурация БД
+
+DATABASE = '/tmp/flsite.db'
+
+DEBUG = True
+
+SECRET_KEY = 'aboba228'
 
 app = Flask(__name__)
+app.config.from_object(__name__)
 
-app.config['SECRET_KEY'] = 'amogus1488'
+app.config.update(dict(DATABASE = os.path.join(app.root_path, 'flsite.db')))
+
+def connect_db():
+    conn = sqlite3.connect(app.config['DATABASE'])
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def create_db():
+    db = connect_db()
+    with app.open_resource('sq_db.sql', mode='r') as f:
+        db.cursor().executescript(f.read())
+    db.commit()
+    db.close()
+
+# app.config['SECRET_KEY'] = 'amogus1488'
 
 menu = [{'name':'Установка', 'url': 'install-flask'},
         {'name':'Первое приложение', 'url': 'first-app'},
         {'name':'Обратная связь', 'url': 'contact'}]
 
+def get_db():
+    if not hasattr(g, 'link_db'):
+        g.link_db = connect_db()
+    return g.link_db
+
 @app.route('/')
 def index():
+    db = get_db()
     print(url_for('index'))
     return render_template('index.html', title = 'Главная страница', menu = menu)
+
+@app.teardown_appcontext
+def close_db(error):
+    if hasattr(g, 'link_db'):
+        g.link_db.close()
 
 @app.route('/about')
 def about():
