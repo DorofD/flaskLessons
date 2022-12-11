@@ -53,7 +53,26 @@ class FDataBase:
             print('Ошибка добавления статьи в БД: ' + str(e))
             return False
         return True
+    
+    def getPost(self, postId):
+        try:
+            self.__cur.execute(f'SELECT title, text FROM posts WHERE id = {postId} LIMIT 1')
+            res = self.__cur.fetchone()
+            if res:
+                return res
+        except sqlite3.Error as e:
+            print('Ошибка добавления статьи в БД: ' + str(e))
+        return(False, False)
 
+    def getPostAnonce(self):
+        try:
+            self.__cur.execute(f'SELECT id, title, text FROM posts ORDER BY time DESC')
+            res = self.__cur.fetchall()
+            if res:
+                return res
+        except sqlite3.Error as e:
+            print('Ошибка обращения к БД: ' + str(e))
+        return[]
 
 menu = [{'name':'Установка', 'url': 'install-flask'},
         {'name':'Первое приложение', 'url': 'first-app'},
@@ -68,7 +87,8 @@ def get_db():
 def index():
     db = get_db()
     dbase = FDataBase(db)
-    return render_template('index.html', title = 'Главная страница', menu = dbase.getMenu())
+    posts = dbase.getPostAnonce()
+    return render_template('index.html', title = 'Главная страница', menu = dbase.getMenu(), posts = dbase.getPostAnonce())
 
 @app.teardown_appcontext
 def close_db(error):
@@ -121,10 +141,18 @@ def addPost():
     
     return render_template('add_post.html', title = 'Добавление статьи', menu = dbase.getMenu())
 
+@app.route('/post/<int:id_post>')
+def showPost(id_post):
+    db = get_db()
+    dbase = FDataBase(db)
+    title, post = dbase.getPost(id_post)
+    if not title:
+        return render_template('page404.html', title='Страница не найдена', menu = dbase.getMenu()), 404
+    return render_template('post.html', menu = dbase.getMenu(), title = title, post = post)
 
 @app.errorhandler(404)
 def pageNotFound(error):
-    return render_template('page404.html', title='Страница не найдена', menu=menu), 404
+    return render_template('page404.html', title='Страница не найдена', menu = menu), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
