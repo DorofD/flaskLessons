@@ -37,36 +37,43 @@ class FDataBase:
         try:
             self.__cur.execute(sql)
             res = self.__cur.fetchall()
-            print(res)
             if res: 
                 return res
         except:
             print('Ошибка чтения из БД')
         return []
 
-    def addPost(self, title, text):
+    def addPost(self, title, text, url):
         try:
+            self.__cur.execute(f"SELECT COUNT() as `count` FROM posts WHERE url LIKE '{url}'")
+            res = self.__cur.fetchone()
+            if res['count'] > 0:
+                print('Статья уже существует')
+                return False
+
             tm = math.floor(time.time())
-            self.__cur.execute('INSERT INTO posts VALUES(NULL, ?, ?, ?)', (title, text, tm))
+            self.__cur.execute('INSERT INTO posts VALUES(NULL, ?, ?, ?, ?)', (title, text, url, tm))
             self.__db.commit()
         except sqlite3.Error as e:
             print('Ошибка добавления статьи в БД: ' + str(e))
             return False
         return True
     
-    def getPost(self, postId):
+    def getPost(self, alias):
         try:
-            self.__cur.execute(f'SELECT title, text FROM posts WHERE id = {postId} LIMIT 1')
+            self.__cur.execute(f"SELECT title, text FROM posts WHERE url LIKE '{alias}' LIMIT 1")
             res = self.__cur.fetchone()
             if res:
-                return res
+                base = url_for('static', filename='images_html')
+                text = 'images_html/stat1/img1.jpg'
+                return (res['title'], text)
         except sqlite3.Error as e:
             print('Ошибка добавления статьи в БД: ' + str(e))
         return(False, False)
 
     def getPostAnonce(self):
         try:
-            self.__cur.execute(f'SELECT id, title, text FROM posts ORDER BY time DESC')
+            self.__cur.execute(f'SELECT id, title, text, url FROM posts ORDER BY time DESC')
             res = self.__cur.fetchall()
             if res:
                 return res
@@ -97,7 +104,9 @@ def close_db(error):
 
 @app.route('/about')
 def about():
-    return render_template('about.html', title = 'О сайте', menu = menu)
+    db = get_db()
+    dbase = FDataBase(db)
+    return render_template('about.html', title = 'О сайте', menu = dbase.getMenu())
 
 @app.route('/profile/<username>')
 def profile(username):
@@ -107,12 +116,14 @@ def profile(username):
 
 @app.route('/contact', methods=['POST', 'GET'])
 def contact():
+    db = get_db()
+    dbase = FDataBase(db)
     if request.method == 'POST':
         if len(request.form['username']) > 2:
             flash('Сообщение отправлено', category='success')
         else:
             flash('Ошибка отправки', category='error')
-    return render_template('contact.html', title = 'Обратная связь', menu = menu)
+    return render_template('contact.html', title = 'Обратная связь', menu = dbase.getMenu())
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -131,7 +142,7 @@ def addPost():
 
     if request.method == 'POST':
         if len(request.form['name']) > 4 and len(request.form['post']) > 10:
-            res = dbase.addPost(request.form['name'], request.form['post'])
+            res = dbase.addPost(request.form['name'], request.form['post'], request.form['url'])
             if not res:
                 flash('Ошибка добавления статьи', category = 'error')
             else:
@@ -141,11 +152,11 @@ def addPost():
     
     return render_template('add_post.html', title = 'Добавление статьи', menu = dbase.getMenu())
 
-@app.route('/post/<int:id_post>')
-def showPost(id_post):
+@app.route('/post/<alias>')
+def showPost(alias):
     db = get_db()
     dbase = FDataBase(db)
-    title, post = dbase.getPost(id_post)
+    title, post = dbase.getPost(alias)
     if not title:
         return render_template('page404.html', title='Страница не найдена', menu = dbase.getMenu()), 404
     return render_template('post.html', menu = dbase.getMenu(), title = title, post = post)

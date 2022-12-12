@@ -1,1 +1,2 @@
-{% extends 'base.html' %} {% block content %} {{ super() }} {{ post }} {% endblock %}
+{% extends 'base.html' %} {% block content %} {{ super() }} {{ post | safe}} {%
+endblock %}
