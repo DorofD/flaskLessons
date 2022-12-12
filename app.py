@@ -1,6 +1,6 @@
 from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g
 
-import sqlite3, os, math, time
+import sqlite3, os, math, time, re
 
 # конфигурация БД
 
@@ -65,7 +65,9 @@ class FDataBase:
             res = self.__cur.fetchone()
             if res:
                 base = url_for('static', filename='images_html')
-                text = 'images_html/stat1/img1.jpg'
+                text = re.sub(r"(?P<tag><img\s+[^>]*src=)(?P<quote>[\"'])(?P<url>.+?)(?P=quote)>",
+                "\\g<tag>" + base + "/\\g<url>>",
+                res['text'])
                 return (res['title'], text)
         except sqlite3.Error as e:
             print('Ошибка добавления статьи в БД: ' + str(e))
