@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g
+from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g, make_response
 
 import sqlite3, os, math, time, re
 
@@ -130,12 +130,27 @@ def contact():
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-    if 'userLogged' in session:
-        return redirect(url_for('profile', username=session['userLogged']))
-    elif request.method == 'POST' and request.form['username'] == 'selfedu' and request.form['psw'] == '123':
-        session['userLogged'] = request.form['username']
-        return redirect(url_for('profile', username=session['userLogged']))
-    return render_template('login.html', title='Авторизация', menu=menu)
+    log =''
+    if request.cookies.get('logged'):
+        log = request.cookies.get('logged')
+    
+    res = make_response(f'<h1>Форма авторизации</h1> <p>logged: {log}')
+    res.set_cookie('logged', 'yes')
+    return res
+
+    # if 'userLogged' in session:
+    #     return redirect(url_for('profile', username=session['userLogged']))
+    # elif request.method == 'POST' and request.form['username'] == 'selfedu' and request.form['psw'] == '123':
+    #     session['userLogged'] = request.form['username']
+    #     return redirect(url_for('profile', username=session['userLogged']))
+    # return render_template('login.html', title='Авторизация', menu=menu)
+
+@app.route('/logout', methods=['POST', 'GET'])
+def logout():
+    log =''
+    res = make_response(f'<h1>Вы больше не авторизованы</h1> <p>logged: {log}')
+    res.set_cookie('logged', '', 0)
+    return res
 
 @app.route('/add_post', methods=['POST', 'GET'])
 def addPost():
@@ -163,9 +178,14 @@ def showPost(alias):
         return render_template('page404.html', title='Страница не найдена', menu = dbase.getMenu()), 404
     return render_template('post.html', menu = dbase.getMenu(), title = title, post = post)
 
+@app.route('/translate')
+def translate():
+    return redirect('https://translate.yandex.ru/', 301)
+
 @app.errorhandler(404)
 def pageNotFound(error):
-    return render_template('page404.html', title='Страница не найдена', menu = menu), 404
+    # return render_template('page404.html', title='Страница не найдена', menu = menu), 404
+    return('Страница не найдена', 404)
 
 if __name__ == '__main__':
     app.run(debug=True)
